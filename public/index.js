@@ -9,6 +9,13 @@ const lightXPos = 1.5;
 const lightYPos = 0.5;
 const lightZPos = 0.8;
 
+// LANDING PAGE
+const blobSpeed = 0.1;
+const numBlobs = 10;
+const clock = new THREE.Clock();
+let time = 0;
+let landingpage = true;
+
 // MARCHING CUBES
 const resolution = 48;
 let effect;
@@ -36,6 +43,9 @@ main();
 
 // LANDING PAGE
 function main() {
+
+    startThree();
+    renderLoadingGraphic();
 
     // display number of connections
     socket.on('numclients', data => {
@@ -72,6 +82,7 @@ function main() {
         getUserInput();   
         $("#input-text").removeClass("fadeIn");
         $("#input-text").addClass("fadeOut");
+        updateScene();
         setTimeout(() => {
             $("#input-text").addClass("hidden");
           }, 500);
@@ -91,7 +102,7 @@ function getUserInput(){
 
 // INITIALISE HANDTRACK.JS THEN CALL MAIN()
 function init() {
-
+    scene.add(pointLight);
     handTrack.load(modelParams).then(lmodel => {
         model = lmodel
         handTrack.startVideo(video).then(status => {
@@ -99,16 +110,14 @@ function init() {
             videoWidth = video.width;
             videoHeight = video.height;
             if (status) {
-                startThree();
+                startHandtrack();
                 handleDomElems();
             }
         });
     });
 }
 
-// CREATE THREE.JS SCENE AND LISTEN FOR SERVER DATA
 function startThree() {
-
     container = document.getElementById('scene-container');
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0d0d0c);
@@ -116,10 +125,12 @@ function startThree() {
     createCamera();
     createLights();
     createRenderer();
-
     createMetaballs();
-
     window.addEventListener('resize', onWindowResize, false);
+}
+
+// CREATE THREE.JS SCENE AND LISTEN FOR SERVER DATA
+function startHandtrack() {
 
     animate();
 
@@ -153,6 +164,37 @@ function startThree() {
     socket.on('moving', data => {
         hands = data;
     });
+}
+
+// RENDER LOADING SCREEN GRAPHIC
+function renderLoadingGraphic() {
+    if (landingpage) {
+        requestAnimationFrame(renderLoadingGraphic);
+        const delta = clock.getDelta();
+        time += delta * blobSpeed * 0.5;
+        effect.reset();
+        const subtract = 12;
+        const strength = 1.2 / ((Math.sqrt(numBlobs) - 1) / 4 + 1);
+        for (let i = 0; i < numBlobs; i++) {
+            const ballx = Math.sin(i + 1.26 * time * (1.03 + 0.5 * Math.cos(0.21 * i))) * 0.27 + 0.5;
+            const bally = Math.abs(Math.cos(i + 1.12 * time * Math.cos(1.22 + 0.1424 * i))) * 0.27 + 0.5;
+            const ballz = Math.cos(i + 1.32 * time * 0.1 * Math.sin((0.92 + 0.53 * i))) * 0.27 + 0.5;
+            effect.addBall(ballx, bally, ballz, strength, subtract);
+        }
+        renderer.render(scene, camera);
+    } else if (landingpage == false) {
+        effect.reset();
+        renderer.render(scene, camera);
+    }
+}
+
+// MOVE SCENE CONTAINER TO BACK AND UPDATE SCENE
+function updateScene(){
+    landingpage = false;
+    $("#scene-container").css('z-index', '0');
+    camera.position.set(0, 0, 1500);
+    scene.add(pointLight);
+    light.intensity = 1;
 }
 
 // ANIMATION LOOP
@@ -226,19 +268,18 @@ function createMetaballs() {
 // CREATE CAMERA
 function createCamera(){
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.set(0, 0, 1500);
+    camera.position.set(0, 250, 1500);
 }
 
 // CREATE LIGHTS
 function createLights(){
-    light = new THREE.DirectionalLight(0xebebae);
+    light = new THREE.DirectionalLight(0xebebae, 0.5);
     light.position.set(lightXPos, lightYPos, lightZPos);
     light.position.normalize();
     scene.add(light);
 
     pointLight = new THREE.PointLight(0xfff7d6);
     pointLight.position.set(0, 0, 75);
-    scene.add(pointLight);
 
     ambientLight = new THREE.AmbientLight(0x080808);
     scene.add(ambientLight);
