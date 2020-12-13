@@ -1,15 +1,19 @@
 const express = require("express");
-const http = require("http");
-const socket = require("socket.io");
-
 const app = express();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
 const port = process.env.PORT || 3000;
-const server = http.createServer(app);
 
-const io = socket.listen(server);
+const admin = require("firebase-admin");
+const serviceAccount = require("./ServiceAccountKey.json");
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://living-structure.firebaseio.com"
+});
+const db = admin.firestore();
+
 let clients = [];
 let numclients = 0;
-let screenshots = [];
 
 app.use(express.static("public"));
 
@@ -26,7 +30,14 @@ io.on("connection", socket => {
     console.log(`New connection: ${socket.id}`);
     numclients++;
     socket.emit('numclients', numclients);
-    socket.emit('allscreenshots', screenshots);
+    
+    db.collection('screenshots').get().then(snapshot => {
+        let screenshots = [];
+        snapshot.docs.forEach(doc => {
+            screenshots.push(doc.data());
+        });
+        socket.emit('allscreenshots', screenshots);
+    });
 
     let clientinfo = {
         num: numclients,
@@ -45,22 +56,9 @@ io.on("connection", socket => {
     });
 
     clients.push(clientinfo);
-    let stopDisplaying;
 
     // RECEIVE HAND POSITION COORDINATES FROM CLIENT
     socket.on("handmoved", data => {
-
-        // if user inactive for more than 5 seconds, stop displaying
-        clearTimeout(stopDisplaying);
-        stopDisplaying = setTimeout(() => {
-            removeClient(socket.id);
-            console.log(`Stopped displaying ${socket.id} due to inactivity`)
-        }, 5 * 1000);
-        const index = getIndex(socket.id);
-        if (index == -1) {
-            clients.push(clientinfo);
-            console.log(`${socket.id} active again, displaying hand`)
-        }
 
         // update hand position
         clientinfo.x = data.x;
@@ -85,7 +83,9 @@ io.on("connection", socket => {
             people: audience,
             time: `${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`
         }
-        screenshots.push(screenshotinfo);
+
+        const timestamp =  `${new Date().toISOString()}`;
+        db.collection('screenshots').doc(timestamp).set(screenshotinfo);
         io.emit("newscreenshot", screenshotinfo);
     })
 

@@ -55,6 +55,7 @@ function main() {
     // load archive of screenshots
     socket.on('allscreenshots', data => {
         console.log("received archived screenshots");
+        console.log(data);
         for (let i = 0; i < data.length; i++) {
             const newdiv = $( "<div class='captioned-image left'></div>" );
             newdiv.append($("<img>", {
@@ -239,6 +240,7 @@ function render() {
 
 // DISPLAY METABALLS AT CONNECTED CLIENTS' HAND POSITIONS
 function updateCubes(object, hand) {
+    console.log("number of hands: " + hands.length);
     object.reset();
     const subtract = 12;
     const strength = 0.8;
