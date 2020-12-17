@@ -49,7 +49,7 @@ function main() {
 
     // display number of connections
     socket.on('numclients', data => {
-        $("#numclients").text(`>number of connections: ${data}`);
+        $("#numclients").text(`>Number of connections: ${data}`);
     });
 
     // load archive of screenshots
@@ -137,7 +137,7 @@ function startHandtrack() {
 
     // display number of connections
     socket.on('clientconnected', data => {
-        $("#numclients").text(`>number of connections: ${data.num}`);
+        $("#numclients").text(`>Number of connections: ${data.num}`);
         $("#connections").append(`<p>>${data.name} connected from ${data.location}</p>`);
         $("#connection-events").animate({ scrollTop: $("#connections").height() }, 800);
     });
@@ -156,7 +156,7 @@ function startHandtrack() {
     })
 
     socket.on('clientdisconnected', data => {
-        $("#numclients").text(`>number of connections: ${data.num}`);
+        $("#numclients").text(`>Number of connections: ${data.num}`);
         $("#connections").append(`<p>>${data.name} disconnected from ${data.location}</p>`);
         $("#connection-events").animate({ scrollTop: $("#connections").height() }, 800);
     });
